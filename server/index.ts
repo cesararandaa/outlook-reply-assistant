@@ -32,8 +32,18 @@ interface DraftRequest {
   thread?: ThreadMessage[];
   tone: string;
   language: "auto" | "es" | "en";
+  length: "auto" | "short" | "medium" | "long";
   instructions: string;
 }
+
+const LEARN_CAP = 25;
+
+const LENGTH_INSTRUCTIONS: Record<DraftRequest["length"], string | null> = {
+  auto: null,
+  short: "Length: keep it to 1 to 3 sentences. No greeting beyond a single word if any.",
+  medium: "Length: one short paragraph (3 to 6 sentences).",
+  long: "Length: multiple paragraphs are fine if the situation calls for it.",
+};
 
 function formatThread(thread: ThreadMessage[]): string {
   return thread
@@ -116,11 +126,12 @@ app.post("/api/samples/learn", (req: Request, res: Response) => {
   if (!Array.isArray(samples)) {
     return res.status(400).json({ error: "expected an array of {reply, language?}" });
   }
-  // Replace existing learned samples with the latest pull
-  writeFileSync(LEARNED_PATH, JSON.stringify(samples, null, 2));
+  // Cap to keep cached system prompt bounded; client sends newest first.
+  const capped = samples.slice(0, LEARN_CAP);
+  writeFileSync(LEARNED_PATH, JSON.stringify(capped, null, 2));
   const all = loadSamples();
-  console.log(`[learn] saved ${samples.length} learned samples (${all.length} total)`);
-  res.json({ learned: samples.length, total: all.length });
+  console.log(`[learn] saved ${capped.length} learned samples (cap ${LEARN_CAP}, ${all.length} total)`);
+  res.json({ learned: capped.length, total: all.length, cap: LEARN_CAP });
 });
 
 app.post("/api/samples/add", (req: Request, res: Response) => {
@@ -142,9 +153,11 @@ app.post("/api/samples/add", (req: Request, res: Response) => {
   }
 
   learned.push({ reply, language: sample.language });
+  // Evict oldest if over the cap.
+  while (learned.length > LEARN_CAP) learned.shift();
   writeFileSync(LEARNED_PATH, JSON.stringify(learned, null, 2));
   const all = loadSamples();
-  console.log(`[add] appended sample (${all.length} total)`);
+  console.log(`[add] appended sample (${all.length} total, learned at ${learned.length}/${LEARN_CAP})`);
   res.json({ added: 1, duplicate: false, total: all.length });
 });
 
@@ -190,6 +203,7 @@ app.post("/api/draft", async (req: Request, res: Response) => {
     "",
     `Language: ${langInstruction}`,
     `Tone: ${body.tone}`,
+    LENGTH_INSTRUCTIONS[body.length ?? "auto"],
     body.instructions.trim() ? `Extra instructions from me: ${body.instructions.trim()}` : null,
     "",
     body.mode === "compose"
@@ -202,7 +216,7 @@ app.post("/api/draft", async (req: Request, res: Response) => {
     .join("\n");
 
   console.log(
-    `\n[draft] mode=${body.mode} lang=${targetLanguage} tone=${body.tone}` +
+    `\n[draft] mode=${body.mode} lang=${targetLanguage} tone=${body.tone} length=${body.length ?? "auto"}` +
       (body.from ? ` from="${body.from.name} <${body.from.address}>"` : "") +
       ` subject="${body.subject}"` +
       ` body_len=${body.body.length}` +
@@ -245,6 +259,17 @@ app.post("/api/draft", async (req: Request, res: Response) => {
     }
     if (carry) res.write(carry.replace(/[—–]/g, ","));
     res.end();
+
+    const final = await stream.finalMessage();
+    const u = final.usage;
+    const cacheRead = u.cache_read_input_tokens ?? 0;
+    const cacheWrite = u.cache_creation_input_tokens ?? 0;
+    const hitPct = cacheRead + cacheWrite > 0 ? Math.round((cacheRead / (cacheRead + cacheWrite)) * 100) : 0;
+    console.log(
+      `[draft] usage in=${u.input_tokens} out=${u.output_tokens}` +
+        ` cache_read=${cacheRead} cache_write=${cacheWrite} cache_hit=${hitPct}%` +
+        ` stop=${final.stop_reason}`,
+    );
   } catch (e) {
     const err = e as Error;
     console.error("[draft] error:", err);

@@ -22,8 +22,8 @@ header h1 { margin: 0 0 4px; font-size: 16px; }
 
 .controls, .output { display: flex; flex-direction: column; gap: 10px; }
 
-.row { display: flex; gap: 10px; }
-.row label { flex: 1; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row label { flex: 1 1 80px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {

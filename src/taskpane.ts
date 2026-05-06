@@ -15,7 +15,33 @@ interface DraftRequest {
   thread?: ThreadMessage[];
   tone: string;
   language: "auto" | "es" | "en";
+  length: "auto" | "short" | "medium" | "long";
   instructions: string;
+}
+
+const PREF_KEYS = {
+  tone: "rra.tone",
+  language: "rra.language",
+  length: "rra.length",
+  instructions: "rra.instructions",
+} as const;
+
+function hydratePrefs() {
+  for (const id of ["tone", "language", "length"] as const) {
+    const stored = localStorage.getItem(PREF_KEYS[id]);
+    if (stored) (document.getElementById(id) as HTMLSelectElement).value = stored;
+  }
+  const instr = localStorage.getItem(PREF_KEYS.instructions);
+  if (instr) (document.getElementById("instructions") as HTMLTextAreaElement).value = instr;
+}
+
+function bindPrefPersistence() {
+  for (const id of ["tone", "language", "length"] as const) {
+    const el = document.getElementById(id) as HTMLSelectElement;
+    el.addEventListener("change", () => localStorage.setItem(PREF_KEYS[id], el.value));
+  }
+  const instr = document.getElementById("instructions") as HTMLTextAreaElement;
+  instr.addEventListener("input", () => localStorage.setItem(PREF_KEYS.instructions, instr.value));
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
@@ -66,6 +92,9 @@ Office.onReady(({ host }) => {
   $("learn").addEventListener("click", () => learnFromSentItems());
   $("add-sample").addEventListener("click", () => addPastedSample());
   $("clear-learned").addEventListener("click", () => clearLearned());
+
+  hydratePrefs();
+  bindPrefPersistence();
   refreshSamplesCount();
 });
 
@@ -452,6 +481,7 @@ async function generate() {
       thread: thread.length > 0 ? thread : undefined,
       tone: ($("tone") as HTMLSelectElement).value,
       language: ($("language") as HTMLSelectElement).value as DraftRequest["language"],
+      length: ($("length") as HTMLSelectElement).value as DraftRequest["length"],
       instructions: ($("instructions") as HTMLTextAreaElement).value,
     };
 
