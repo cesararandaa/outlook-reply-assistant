@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reply Assistant</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="pane">
+      <header>
+        <h1>Draft reply</h1>
+        <p class="hint" id="status">Loading…</p>
+      </header>
+
+      <section class="controls">
+        <div class="row">
+          <label>
+            Language
+            <select id="language">
+              <option value="auto">Auto (mirror)</option>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+
+          <label>
+            Tone
+            <select id="tone">
+              <option value="match">Match incoming</option>
+              <option value="warm">Warm</option>
+              <option value="brief">Brief</option>
+              <option value="formal">Formal</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="chips">
+          <button type="button" class="chip" data-instr="Confirm and propose a concrete next step.">Confirm</button>
+          <button type="button" class="chip" data-instr="Acknowledge receipt and say I'll follow up soon.">Acknowledge</button>
+          <button type="button" class="chip" data-instr="Ask for the missing details I need to proceed.">Ask info</button>
+          <button type="button" class="chip" data-instr="Propose pushing the date by one week.">Push date</button>
+          <button type="button" class="chip" data-instr="Decline politely without burning the relationship.">Decline</button>
+          <button type="button" class="chip" data-instr="Say thanks and close out the thread.">Thanks</button>
+        </div>
+
+        <label>
+          Extra instructions (optional)
+          <textarea id="instructions" rows="2" placeholder="e.g. push the meeting to next week"></textarea>
+        </label>
+
+        <button id="generate" type="button">Generate draft</button>
+      </section>
+
+      <section class="output" hidden>
+        <h2>Draft</h2>
+        <textarea id="draft" rows="14"></textarea>
+        <div class="actions">
+          <button id="insert" type="button">Insert into reply</button>
+          <button id="copy" type="button" class="secondary">Copy</button>
+          <button id="regen" type="button" class="secondary">Regenerate</button>
+        </div>
+      </section>
+
+      <details class="settings">
+        <summary>Style learning</summary>
+        <p class="hint" id="samples-status">Loading sample count…</p>
+
+        <div class="actions">
+          <button id="learn" type="button" class="secondary">Learn from sent items (EWS)</button>
+          <button id="clear-learned" type="button" class="secondary">Clear learned</button>
+        </div>
+        <p class="hint">Tries EWS first — works on tenants where it isn't locked down. If your tenant blocks EWS, paste samples manually below.</p>
+
+        <label>
+          Paste an email you wrote (one at a time)
+          <textarea id="paste-sample" rows="6" placeholder="Paste the body of one of your real sent emails here, then click Add sample. Repeat 5–15 times."></textarea>
+        </label>
+        <div class="actions">
+          <button id="add-sample" type="button">Add sample</button>
+        </div>
+      </details>
+    </main>
+
+    <script type="module" src="/src/taskpane.ts"></script>
+  </body>
+</html>
