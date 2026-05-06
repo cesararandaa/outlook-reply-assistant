@@ -1,5 +1,5 @@
 {
-  "name": "reply-assistant",
+  "name": "outlook-reply-assistant",
   "version": "0.1.0",
   "private": true,
   "description": "Outlook web add-in that drafts replies in your style using Claude.",

@@ -15,7 +15,7 @@ License: MIT.
 ## Setup
 
 ```sh
-cd reply-assistant
+cd outlook-reply-assistant
 npm install
 ```
 
