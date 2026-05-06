@@ -6,12 +6,12 @@
   },
   {
     "language": "en",
-    "context": "Just checking in — any update on the proposal you mentioned last week?",
+    "context": "Just checking in. Any update on the proposal you mentioned last week?",
     "reply": "Sending it over by EOD. Holding on one number from finance, then it's ready."
   },
   {
     "language": "es",
     "context": "¿Podrías compartirnos el avance del proyecto? Me preguntan internamente.",
-    "reply": "Sí — al cierre de hoy llevamos lo planeado y dos pendientes menores. Resumen formal mañana antes de las 10."
+    "reply": "Sí, al cierre de hoy llevamos lo planeado y dos pendientes menores. Resumen formal mañana antes de las 10."
   }
 ]

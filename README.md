@@ -1,16 +1,16 @@
 # Reply Assistant
 
-An Outlook web add-in that drafts email replies **in your own writing voice**, using Claude. Reads the open email (and the surrounding thread when EWS is available), generates a draft, and inserts it into the reply window.
+An Outlook web add-in that drafts email replies in your own writing voice, using Claude. It reads the open email (and the surrounding thread when EWS is available), generates a draft, and inserts it into the reply window.
 
-Designed for fast iteration: streaming output, quick-action chips for common intents (Confirm / Acknowledge / Decline / etc.), bilingual ES/EN, and a "learn from my sent items" feature that pulls real samples of your own writing from your Sent folder so drafts genuinely sound like you.
+Streaming output, quick-action chips for common intents (Confirm / Acknowledge / Decline / etc.), bilingual ES/EN, and a "learn from my sent items" feature that pulls real samples of your own writing from your Sent folder.
 
 License: MIT.
 
 ## Architecture
 
-- **Task pane** (Office.js + TypeScript, served by Vite on `https://localhost:3000`) — runs inside Outlook on the web.
-- **Backend** (Express + Anthropic SDK on `http://localhost:3001`) — holds the API key, calls Claude with style samples baked into a cached system prompt.
-- **`style-samples.json`** — your real reply samples. The model treats these as the source of voice and tone. Add more for better mimicry.
+- **Task pane** (Office.js + TypeScript, served by Vite on `https://localhost:3000`): runs inside Outlook on the web.
+- **Backend** (Express + Anthropic SDK on `http://localhost:3001`): holds the API key, calls Claude with style samples baked into a cached system prompt.
+- **`style-samples.json`**: your real reply samples. The model treats these as the source of voice and tone. Add more for better mimicry.
 
 ## Setup
 
@@ -19,14 +19,14 @@ cd outlook-reply-assistant
 npm install
 ```
 
-The backend reads `ANTHROPIC_API_KEY` from the environment. If you've already got it exported in your shell (e.g. for gitdash), nothing else to do:
+The backend reads `ANTHROPIC_API_KEY` from the environment. If it's already exported in your shell, nothing else to do:
 
 ```sh
-# In ~/.bashrc / ~/.zshrc — same key gitdash uses
+# In ~/.bashrc / ~/.zshrc
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-Optional: a project-local `.env` works too (`cp .env.example .env`), but a shell-exported var takes priority and is the recommended path so the key isn't duplicated on disk.
+A project-local `.env` works too (`cp .env.example .env`), but a shell-exported var takes priority.
 
 ## Run dev
 
@@ -34,7 +34,7 @@ Optional: a project-local `.env` works too (`cp .env.example .env`), but a shell
 npm run dev
 ```
 
-Two processes start: Vite on `https://localhost:3000` (auto-trusted cert via `vite-plugin-mkcert`), Express on `http://localhost:3001`. Vite proxies `/api/*` to the backend, so the task pane only ever sees `https://localhost:3000`.
+Two processes start: Vite on `https://localhost:3000` (auto-trusted cert via `vite-plugin-mkcert`), Express on `http://localhost:3001`. Vite proxies `/api/*` to the backend, so the task pane only sees `https://localhost:3000`.
 
 Sanity check the API: `curl http://localhost:3001/api/health`.
 
@@ -59,14 +59,14 @@ Edit `style-samples.json`. Each entry is `{ context, reply, language? }`:
 }
 ```
 
-5–15 real samples gives a much better impression than 3 placeholders. The samples are sent in the system prompt with `cache_control: ephemeral`, so adding more doesn't slow down repeat calls (cache hits show up in `usage.cache_read_input_tokens`).
+5 to 15 real samples works better than 3 placeholders. Samples are sent in the system prompt with `cache_control: ephemeral`, so adding more doesn't slow down repeat calls (cache hits show up in `usage.cache_read_input_tokens`).
 
 ## Configuration
 
-- `ANTHROPIC_API_KEY` (required) — your Anthropic API key.
-- `ANTHROPIC_MODEL` (optional, defaults to `claude-opus-4-7`) — set to `claude-sonnet-4-6` for ~3x faster, ~5x cheaper drafts at slightly lower style fidelity.
-- `PORT` (optional, defaults to `3001`) — backend port.
+- `ANTHROPIC_API_KEY` (required): your Anthropic API key.
+- `ANTHROPIC_MODEL` (optional, defaults to `claude-sonnet-4-6`): set to `claude-opus-4-7` for higher style fidelity at higher latency and cost.
+- `PORT` (optional, defaults to `3001`): backend port.
 
-## Production deploy (later)
+## Production deploy
 
-For real use, host the static `dist/` (after `npm run build`) and the Express server behind HTTPS, update the URLs in `manifest.xml`, and submit it to your tenant's add-in catalog (or AppSource for general distribution).
+Host the static `dist/` (after `npm run build`) and the Express server behind HTTPS, update the URLs in `manifest.xml`, and submit it to your tenant's add-in catalog (or AppSource for general distribution).

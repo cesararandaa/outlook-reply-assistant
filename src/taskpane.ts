@@ -39,7 +39,7 @@ Office.onReady(({ host }) => {
   // Read-mode items expose displayReplyForm; compose-mode items don't.
   mode = "displayReplyForm" in item ? "read" : "compose";
 
-  setStatus(mode === "read" ? "Ready — incoming email loaded." : "Ready — composing.");
+  setStatus(mode === "read" ? "Ready. Incoming email loaded." : "Ready. Composing.");
 
   $("generate").addEventListener("click", () => generate());
   $("insert").addEventListener("click", () => insertDraft());
@@ -191,7 +191,7 @@ async function tryEws(soap: string): Promise<{ ok: boolean; xml?: string; error?
   return { ok: true, xml };
 }
 
-/** Strip quoted thread, signature, and disclaimers — keep only the user's own writing. */
+/** Strip quoted thread, signature, and disclaimers; keep only the user's own writing. */
 function cleanSentBody(body: string): string {
   if (!body) return "";
   // Cut at the first line that looks like a quoted-thread boundary.
@@ -243,8 +243,8 @@ async function learnFromSentItems() {
     // back to the minimal request that asks for default shape only.
     let attempt = await tryEws(SENT_ITEMS_SOAP_FULL(25));
     if (!attempt.ok) {
-      console.warn("[learn] full EWS request failed:", attempt.error, "— retrying minimal");
-      $("samples-status").textContent = "Full request failed — retrying with minimal EWS shape…";
+      console.warn("[learn] full EWS request failed:", attempt.error, "(retrying minimal)");
+      $("samples-status").textContent = "Full request failed. Retrying with minimal EWS shape…";
       attempt = await tryEws(SENT_ITEMS_SOAP_MINIMAL(25));
     }
     if (!attempt.ok) {
@@ -321,7 +321,7 @@ async function readEmail(): Promise<{ subject: string; from?: { name: string; ad
 /**
  * Pull the rest of the conversation via EWS. Returns [] if EWS is disabled on
  * the tenant, no conversationId is available, or the SOAP response can't be
- * parsed — caller should treat the empty case as "use body only".
+ * parsed. Caller should treat the empty case as "use body only".
  *
  * Logs diagnostics to the browser console so failures are visible.
  */

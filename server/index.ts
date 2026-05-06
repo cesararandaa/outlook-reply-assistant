@@ -12,7 +12,7 @@ const SEED_PATH = resolve(ROOT, "style-samples.json");
 const LEARNED_PATH = resolve(ROOT, "learned-samples.json");
 
 interface StyleSample {
-  context?: string;       // the email being replied to (optional — learned samples have no context)
+  context?: string;       // the email being replied to (optional; learned samples have no context)
   reply: string;
   language?: "es" | "en";
 }
@@ -54,7 +54,6 @@ function formatThread(thread: ThreadMessage[]): string {
 function detectLanguage(text: string): "es" | "en" {
   const sample = text.slice(0, 4000).toLowerCase();
   if (/[ñ¿¡]|á|é|í|ó|ú/.test(sample)) return "es";
-  // Common Spanish function-word hits — robust to unaccented casual writing
   const esHits = (sample.match(/\b(que|para|por|con|pero|porque|hola|saludos|gracias|favor|cuando|donde|este|esta|estos|estas|cualquier|hacia|sobre|entre)\b/g) ?? []).length;
   const enHits = (sample.match(/\b(the|and|for|with|that|but|because|hello|thanks|when|where|this|these|any|toward|about|between)\b/g) ?? []).length;
   return esHits > enHits ? "es" : "en";
@@ -68,13 +67,14 @@ function loadSamples(): StyleSample[] {
   return [...seed, ...learned];
 }
 
-const SYSTEM_INSTRUCTIONS = `You draft email replies in the user's voice. Match their cadence, register, vocabulary, and sign-off style — do not invent a generic professional tone.
+const SYSTEM_INSTRUCTIONS = `You draft email replies in the user's voice. Match their cadence, register, vocabulary, and sign-off style. Do not invent a generic professional tone.
 
 Hard rules:
 - Output only the reply body. No subject line, no quoted thread, no commentary about your own draft.
 - Mirror the language of the incoming email (Spanish if the email is in Spanish, English if in English). If the user's tone instruction is "match incoming", also mirror its formality.
 - Preserve concrete commitments and dates from the incoming email. Do not invent facts. If something needs a fact you don't have, leave a clear "[fill in: X]" placeholder.
-- If the user gave extra instructions, follow them — they override defaults.
+- If the user gave extra instructions, follow them. They override defaults.
+- Never use em dashes (—) or en dashes (–). Replace with commas, periods, colons, parentheses, or two separate sentences. This rule overrides any tendency toward "literary" punctuation.
 - Be concise. Replies should be as short as the situation allows.
 
 Below are real reply samples written by the user. Treat them as the canonical source of voice, tone, structure, opening style, and sign-off. Do not copy phrases; absorb the style.`;
@@ -105,7 +105,7 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 const client = new Anthropic();
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-4-7";
+const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
 
 function loadLearned(): StyleSample[] {
   return existsSync(LEARNED_PATH) ? JSON.parse(readFileSync(LEARNED_PATH, "utf-8")) : [];
@@ -233,11 +233,17 @@ app.post("/api/draft", async (req: Request, res: Response) => {
       messages: [{ role: "user", content: userMsg }],
     });
 
+    let carry = "";
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        res.write(event.delta.text);
+        const chunk = carry + event.delta.text;
+        // Hold the last char in case a dash is split across chunks (paranoid, but cheap).
+        carry = chunk.slice(-1);
+        const emit = chunk.slice(0, -1).replace(/\s*[—–]\s*/g, ", ");
+        if (emit) res.write(emit);
       }
     }
+    if (carry) res.write(carry.replace(/[—–]/g, ","));
     res.end();
   } catch (e) {
     const err = e as Error;
